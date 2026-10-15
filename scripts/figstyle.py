@@ -1,14 +1,5 @@
-"""What a hue means, how size maps to line width, and where a collapse midpoint is.
-
-Deliberately NOT a general style module. Layout constants -- the FS_* sizes and the
-five-line frame() -- stay in each figure script, because those are per-figure decisions:
-plot_brief.py already sets a different legend size on purpose because its legend sits
-inside a panel, and a shared copy would mean tweaking one figure silently re-renders
-three others.
-
-What does belong in one place is the semantics that has to agree across figures. A hue
-that means Llama in one figure and Qwen3.5-2B in the next is a reader's error waiting to
-happen, and alpha50 defined twice is a result waiting to disagree with itself.
+"""Shared plotting conventions: colours, how model size maps to line width and marker
+size, and the collapse midpoint alpha_50.
 """
 import math
 
@@ -19,9 +10,7 @@ import math
 QWEN35, QWEN25, LLAMA, GEMMA = "#2E5FD0", "#8A6A00", "#C2255C", "#00998F"
 FAM_MARK = {QWEN35: "o", QWEN25: "s", LLAMA: "^", GEMMA: "D"}
 
-# Task palette, from figures/mech_*.png. Note a hue does double duty across figures --
-# #00998F is ARC here and Gemma above -- which is safe only because no figure encodes
-# both family and task in colour at once. Do not add one that does.
+# Task palette.
 TASK_COL = {"mmlu": "#2E5FD0", "gsm8k": "#D4551F", "arc": "#00998F"}
 TASK_MARK = {"mmlu": "s", "gsm8k": "o", "arc": "^"}
 

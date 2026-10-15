@@ -1,60 +1,23 @@
-"""One figure per TOKENIZER, so size, Instruct/Base and generation are compared on an
-x-axis that means the same thing for every curve in the panel.
+"""One figure per tokenizer: within a tokenizer the same alpha removes the same token
+ids, so every curve in a panel shares the same x-axis.
 
   figures/family_qwen35.png   Qwen3.5 2B-35B, Instruct and Base         (248,044 ordinary ids)
   figures/family_qwen25_3.png Qwen2.5-14B/72B and Qwen3-14B, Instruct and Base (151,643)
   figures/family_gemma.png    Gemma-4 E2B/E4B (PLE) and 12B (dense), Instruct and Base
-  figures/family_llama.png    Llama-3.1-8B, Instruct and Base -- one size and one
-                              generation, so only the version channel carries anything
+  figures/family_llama.png    Llama-3.1-8B, Instruct and Base
 
-Why by tokenizer and not by family (advisor, 2026-10-07): alpha is a share of the ordinary
-vocabulary, so the same alpha is the same intervention -- the same ids removed -- only
-within one tokenizer. Qwen2.5 and Qwen3 share the 151k vocabulary; Qwen3.5 has its own
-248k one. On the old single Qwen panel the two groups also separated by an order of
-magnitude in alpha_50 for the Instruct arms (151k: 0.003-0.019; 248k: 0.054-0.099) with
-no size trend across the gap, which the mixed panel read as a size or generation effect.
-The 151k tokenizer masks MORE of the benchmark text at every alpha (ARC alpha=0.01: 49%
-vs 40%), so the gap is not a gentler cut; tokenizer and generation are confounded in this
-set and the split panels make that visible instead of hiding it. Gemma and Llama each have
-one tokenizer, so their panels are unchanged.
+Encoding:
 
-The cross-family figures answer "which families differ"; these answer the three questions
-that only make sense inside a family, and they answer them in one panel each by giving
-each question its own channel:
-
-  model       hue, one per model -- there are at most seven in a family, so the most
-              direct encoding is affordable here in a way it is not across all sixteen arms
-  size        line width, thin to thick, on the same scale as figures/draft_overlay_*.png
+  model       hue, one per model
+  size        line width, thin to thick
   version     Instruct solid with a filled marker, Base dashed and hollow
-  generation  marker shape -- Qwen3.5, Qwen3 and Qwen2.5 for Qwen; for Gemma there is one
-              generation but two model classes, the PLE E-series against the dense 12B,
-              which Finding 31 shows is the same kind of distinction
+  generation  marker shape -- Qwen3.5, Qwen3 and Qwen2.5 for Qwen; for Gemma-4 the PLE
+              E-series against the dense 12B
 
-These palettes are per-figure and do NOT follow the cross-family hue namespace in
-figstyle.py. That is deliberate: a family figure is read on its own with its own legend,
-and inside it the question is which model, not which family. Do not carry a hue from one
-of these figures to another.
-
-Two rows because the two questions need different y. Raw accuracy compares levels, which
-is what a size comparison wants. LFC = A(alpha)/A(1) divides the baseline out, which is
-what an Instruct-against-Base comparison wants, since several Base arms start far lower
-and would otherwise look like they collapse sooner when they only started lower.
-
-Direct-answer reference (advisor, 2026-10-07): a THIRD ROW, the no-CoT control's accuracy
-at each alpha, drawn with exactly the encoding of the rows above so every arm's reference
-is as distinguishable as its curve. It shares the accuracy row's y scale, so the two are
-read one above the other: where the CoT curve in row 1 drops below the flat line in row 3,
-the chain is costing the model answers it would give without reasoning. An earlier draft
-overlaid the reference as dotted lines on rows 1-2; eight same-hue dotted lines on one
-panel could not be told apart. The row is added only for panels where at least one arm
-has the cells, so a panel without any no-CoT run keeps its two rows.
-
-Every arm is drawn the same way. The same division makes LFC fragile for an arm whose
-A(1) is already near the floor -- Gemma-4-E2B Base starts at 0.26, and Finding 30 says
-not to read its LFC panel -- but the accuracy row above shows that baseline directly, so
-a reader can see the condition rather than be told about it. An earlier version faded
-those curves and named them under the figure; that is a judgement drawn on top of the
-data, and it is not this figure's place to make it.
+Rows: accuracy; LFC = A(alpha) / A(1), which divides out each arm's baseline; and, where
+the files exist, the accuracy of the direct-answer (no-CoT) prompt, on the same y scale as
+the first row. LFC is unstable for an arm whose A(1) is near the floor; the accuracy row
+shows that baseline directly.
 """
 import sys
 import matplotlib; matplotlib.use("Agg")
@@ -68,25 +31,16 @@ from figstyle import width, marker_size
 TASKS = [("gsm8k", "GSM8K"), ("arc", "ARC-Challenge"), ("mmlu", "MMLU")]
 FS_TICK, FS_TITLE, FS_LABEL, FS_LEGEND = 7.5, 9.5, 8.5, 7.0
 
-# Okabe-Ito, the palette designed for colour vision deficiency, validated over ALL pairs
-# on white: worst CVD dE 7.6 (deutan), worst normal-vision dE 15.6, lightness in band.
-# Two slots carry a warning and both are discharged by a second channel rather than
-# waved through. #E69F00 is under 3:1 on white, so it goes to the one model that is also
-# the only square marker and the thickest line; the 7.6 pair is #CC79A7 against #009E73,
-# so those two go to models whose widths are far apart (9B against 35B) rather than to
-# neighbours. Hues are assigned in ascending size order within each family.
-# No panel holds more than five models since the Qwen split (the 151k panel's two 14B
-# generations share a size and so a line width, and differ by hue and marker).
+# Okabe-Ito colour-blind-safe palette; hues are assigned in ascending size order within
+# each figure.
 MODEL_HUE = ["#0072B2", "#CC79A7", "#D55E00", "#009E73", "#E69F00"]
 GEN_MARK = {"Qwen3.5": "o", "Qwen3": "^", "Qwen2.5": "s",
             "Gemma-4 PLE": "D", "Gemma-4 dense": "v", "Llama-3.1": "^"}
 
 # No in-figure title: the legend names every arm, and in a paper the caption carries what
 # a title would have said.
-# How the direct-answer reference is drawn. "row": its own third row (default). "overlay":
-# dotted lines on the accuracy and LFC rows, WITH the arm's markers (filled Instruct,
-# hollow Base) so the version channel survives the overlay; the first overlay draft had no
-# markers and its same-hue dotted lines could not be told apart. `--overlay` selects it.
+# How the direct-answer accuracy is drawn. "row": its own third row (default).
+# "overlay" (`--overlay`): dotted lines on the accuracy and LFC rows.
 REF_MODE = "overlay" if "--overlay" in sys.argv[1:] else "row"
 
 # (family, ordinary-vocabulary size that selects the tokenizer, or None for all, output)
@@ -114,10 +68,8 @@ for family, n_ordinary, out in FAMILIES:
     # A model is a (size, generation) pair: Qwen2.5-14B and Qwen3-14B share a size.
     hue = {m: MODEL_HUE[i] for i, m in enumerate(sorted({(a[PARAMS], a[GEN]) for a in fleet}))}
 
-    # The direct-answer reference gets its own row, drawn with exactly the encoding of the
-    # CoT rows (hue, width, generation marker, Instruct/Base), rather than a dotted overlay:
-    # eight same-hue dotted lines on one panel could not be told apart (Tairan, 2026-10-07).
-    # The row is only added when at least one arm has the cells.
+    # The direct-answer row uses the same encoding as the CoT rows and is only added when
+    # at least one arm has direct-answer files.
     has_ref = any(nocot_acc(a[MODEL], a[SUFFIX], t, 1.0) == nocot_acc(a[MODEL], a[SUFFIX], t, 1.0)
                   for a in fleet for t, _ in TASKS)
     metrics = [(acc, "accuracy", (-.03, 1.03)),
