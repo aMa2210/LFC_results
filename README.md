@@ -53,8 +53,6 @@ Accuracy of a cell = mean of `correct`. LFC (Lexical Fluidity Coefficient) = A(�
 
 - `family_qwen35.png`, `family_qwen25_3.png`, `family_gemma.png`, `family_llama.png` — one
   panel per tokenizer: accuracy, LFC, and the direct-answer (no-CoT) reference, against α.
-- `mech_acc_vs_eos.png`, `mech_alpha50.png` — accuracy against termination rate, and the
-  collapse midpoint α₅₀.
 
 ## Regenerating the figures
 
@@ -63,5 +61,4 @@ Python 3.11, numpy, matplotlib. From the repository root:
 ```bash
 pip install numpy matplotlib
 PYTHONPATH=scripts python scripts/plot_family.py
-PYTHONPATH=scripts python scripts/plot_mechanism.py
 ```
